@@ -48,7 +48,6 @@ def read_grammar_from_file(file_with_grammar):
     # create empty dict that the rules will be stored in
     rules = dict()
 
-    print("Before with")
     with open(file_with_grammar, 'r') as file:
         for line_number, line in enumerate(file):
             # lines end with the new-line character "\n" - remove it
@@ -91,3 +90,5 @@ def read_grammar_from_file(file_with_grammar):
                 if rhs.rstrip() == "":
                     # right-hand side is empty
                     raise CFG_Error("Right-hand side is empty.", line_number + 1)
+
+            print(lhs," ", rhs)
