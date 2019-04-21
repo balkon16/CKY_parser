@@ -93,17 +93,17 @@ def read_grammar_from_file(file_with_grammar):
                 if len(lhs_list) > 1:
                     # left-hand side contains more than one symbol
                     # the symbol can be either terminal or non-terminal
-                    terminals, non_terminals = 0, 0
+                    terminals_cnt, non_terminals_cnt = 0, 0
                     for symbol in lhs_list:
                         if "'" in symbol:
-                            terminals += 1
+                            terminals_cnt += 1
                         else:
-                            non_terminals += 1
+                            non_terminals_cnt += 1
 
                     raise CFG_Error("The rule must contain exactly one " \
                     "non-terminal symbol on the left-hand side. {} terminal " \
-                    "and {} non-terminal symbols were given.".format(terminals, \
-                    non_terminals), line_number + 1)
+                    "and {} non-terminal symbols were given.".format(terminals_cnt, \
+                    non_terminals_cnt), line_number + 1)
 
                 if rhs.rstrip() == "":
                     # right-hand side is empty
@@ -122,7 +122,8 @@ def read_grammar_from_file(file_with_grammar):
                     if "'" in rhs_elem:
                         # terminal symbol on the right-hand side
                         rhs_elem = rhs_elem.replace("'", "")
-                        terminals[rhs_elem].append(lhs)
+                        # terminals[rhs_elem].append(lhs)
+                        terminals[lhs].append(rhs_elem)
                     else:
                         # non-terminal symbol
                         rules[rhs_elem].append(lhs)
@@ -169,8 +170,8 @@ def transform_into_CNF(dicts):
 
     terminals, rules = dicts
 
-    for terminal_RHS in terminals.keys():
-        if len(terminal_RHS.split(" ")) > 1:
+    for terminal_LHS in terminals.keys():
+        if len(terminal_LHS.split(" ")) > 1:
             raise NotImplementedError
 
     # variable used in order to track the use of intermediary rules (see
@@ -180,12 +181,15 @@ def transform_into_CNF(dicts):
     # it may be the case that the normaliztion process will produce a dictionary
     # items that start with the already existing keys. In order to avoid
     # overwriting the current key, value pair a temporary dictionary is created
-    temporary_rules_dict = dict()
+    temporary_rules_dict = defaultdict(list)
 
     # Given the fact that the rules' dictionary has right-hand sides as the keys,
     # and that some RHS are too long for CFG, those RHS do not constitute a valid
     # key and thus must be deleted
     keys_to_remove = []
+
+    # the list will be used to store unit productions, i.e. rules such as A -> B
+    unit_productions = []
 
     for RHS, LHS in rules.items():
         # print(LHS, "->", RHS)
@@ -193,6 +197,11 @@ def transform_into_CNF(dicts):
         RHS_symbols = RHS.split(" ")
         if len(RHS_symbols) == 1:
             # find a chain that leads the LHS to a terminal symbol
+            # unit_productions.append(LHS, RHS)
+            pass
+            # zaimplementować: może być na sam koniec; jeżeli na koniec to
+            # usuń regułę PP -> NP
+
 
         elif len(RHS_symbols) > 2:
             # normalization is needed
@@ -203,7 +212,7 @@ def transform_into_CNF(dicts):
                 tmp_RHS_list = RHS_symbols[:2]
                 tmp_LHS = "X" + str(normalization_tracker)
 
-                temporary_rules_dict[" ".join(tmp_RHS_list)] = tmp_LHS
+                temporary_rules_dict[" ".join(tmp_RHS_list)].append(tmp_LHS)
 
                 RHS_symbols.pop(0)
                 RHS_symbols[0] = tmp_LHS
@@ -214,11 +223,11 @@ def transform_into_CNF(dicts):
             # this is the link between the original input dictionary and the
             # temporary dict
             # note that use the first and only element of the LHS list
-            temporary_rules_dict[" ".join(RHS_symbols)] = LHS[0]
+            temporary_rules_dict[" ".join(RHS_symbols)].append(LHS[0])
 
     # integrate temporary dictionary with the original (input) one:
     for RHS_tmp, LHS_tmp in temporary_rules_dict.items():
-        rules[RHS_tmp].append(LHS_tmp)
+        rules[RHS_tmp].append(LHS_tmp[0])
 
     # delete the rules that contain too long a right-hand side
     for key in keys_to_remove:
