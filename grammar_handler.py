@@ -24,6 +24,7 @@ def read_grammar_from_file(file_with_grammar):
     level. Each line must contain at most one rule. Each rule must be in the
     following form:
         NP -> Det N
+        AP -> Adj
         N -> 'I'
         NP -> Det N PP
     Please note the single quotes around non-terminal symbols.
@@ -192,6 +193,7 @@ def transform_into_CNF(dicts):
         RHS_symbols = RHS.split(" ")
         if len(RHS_symbols) == 1:
             # find a chain that leads the LHS to a terminal symbol
+
         elif len(RHS_symbols) > 2:
             # normalization is needed
 
