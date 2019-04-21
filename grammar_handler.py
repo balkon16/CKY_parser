@@ -1,9 +1,12 @@
 import os
+from collections import defaultdict
 
 class CFG_Error(Exception):
-    def __init__(self, inconsistency, location):
+    def __init__(self, inconsistency, location=None):
 
-        message = inconsistency + " Please check the line no. {}".format(location)
+        message = inconsistency
+        if location:
+            message += " Please check the line no. {}".format(location)
         # Call the base class constructor with the parameters it needs
         super().__init__(message)
 
@@ -42,16 +45,16 @@ def read_grammar_from_file(file_with_grammar):
         if os.stat(file_with_grammar).st_size > 0:
            pass
         else:
-           print("File is empty.")
+            raise CFG_Error("The file is empty")
     except OSError:
         print("No file {} found!".format(file_with_grammar))
 
     # create empty dict that the rules will be stored in; covers rules that
     # don't contain terminal symbols
-    rules = dict()
+    rules = defaultdict(list)
 
     # create empty dict that stores the terminal symbols and their categories
-    terminals = dict()
+    terminals = defaultdict(list)
 
     with open(file_with_grammar, 'r') as file:
         for line_number, line in enumerate(file):
@@ -79,7 +82,6 @@ def read_grammar_from_file(file_with_grammar):
                 lhs = lhs.rstrip()
                 # delete the leading whitespace
                 rhs = rhs.lstrip()
-                print(rhs)
 
                 if "'" in lhs:
                     # left-hand side contains a terminal symbol
@@ -119,9 +121,105 @@ def read_grammar_from_file(file_with_grammar):
                     if "'" in rhs_elem:
                         # terminal symbol on the right-hand side
                         rhs_elem = rhs_elem.replace("'", "")
-                        terminals[rhs_elem] = lhs
+                        terminals[rhs_elem].append(lhs)
                     else:
                         # non-terminal symbol
-                        rules[rhs_elem] = lhs
+                        rules[rhs_elem].append(lhs)
 
         return [terminals, rules]
+
+def transform_into_CNF(dicts):
+    """
+    Given a two-element list of dictionaries (each containing terminal and
+    non-terminal portion of the CFG grammar) returns a list of those two
+    dictionaries but in Chomsky Normal Form. Please note that dictionaries
+    are transformed in-place.
+
+    Each and every Context Free Grammar can be expressed in Chomsky Normal Form.
+    There are three problematic situations:
+        1. Right-hand side mixes terminals with non-terminals.
+        2. Right-hand side is a single non-terminal.
+        3. Right-hand side is of length greater than 2.
+
+    Unit productions refer to situation no. 2. They are dealt with by finding
+    such a rule producing a terminal symbol that:
+        A -> B (unit production)
+        B -> a
+        ______
+        A -> a (no unit production)
+
+    Normalization is used in order to deal with a situaion described in step no.
+    3. Let's assume the following rule:
+        A -> B C D E
+    By producing intermediary rules based on the left-most two strings of the
+    RHS we can get to Chomksy Normal Form rule:
+        step 1:
+            A -> X1 D E
+            X1 -> B C
+        step 2:
+            A -> X2 E
+            X1 -> B C
+            X2 -> X1 D
+
+    Note: the current implementation does not cover the case in which a terminal
+    part of the CFG contains a RHS with terminal and at least one non-terminal
+    symbol. NotImplementedError is raised.
+    """
+
+    terminals, rules = dicts
+
+    for terminal_RHS in terminals.keys():
+        if len(terminal_RHS.split(" ")) > 1:
+            raise NotImplementedError
+
+    # variable used in order to track the use of intermediary rules (see
+    # normalization)
+    normalization_tracker = 0
+
+    # it may be the case that the normaliztion process will produce a dictionary
+    # items that start with the already existing keys. In order to avoid
+    # overwriting the current key, value pair a temporary dictionary is created
+    temporary_rules_dict = dict()
+
+    # Given the fact that the rules' dictionary has right-hand sides as the keys,
+    # and that some RHS are too long for CFG, those RHS do not constitute a valid
+    # key and thus must be deleted
+    keys_to_remove = []
+
+    for RHS, LHS in rules.items():
+        # print(LHS, "->", RHS)
+
+        RHS_symbols = RHS.split(" ")
+        if len(RHS_symbols) == 1:
+            # find a chain that leads the LHS to a terminal symbol
+        elif len(RHS_symbols) > 2:
+            # normalization is needed
+
+            keys_to_remove.append(RHS)
+
+            while len(RHS_symbols) > 2:
+                tmp_RHS_list = RHS_symbols[:2]
+                tmp_LHS = "X" + str(normalization_tracker)
+
+                temporary_rules_dict[" ".join(tmp_RHS_list)] = tmp_LHS
+
+                RHS_symbols.pop(0)
+                RHS_symbols[0] = tmp_LHS
+
+                normalization_tracker += 1
+
+
+            # this is the link between the original input dictionary and the
+            # temporary dict
+            # note that use the first and only element of the LHS list
+            temporary_rules_dict[" ".join(RHS_symbols)] = LHS[0]
+
+    # integrate temporary dictionary with the original (input) one:
+    for RHS_tmp, LHS_tmp in temporary_rules_dict.items():
+        rules[RHS_tmp].append(LHS_tmp)
+
+    # delete the rules that contain too long a right-hand side
+    for key in keys_to_remove:
+        rules.pop(key, None)
+
+    return rules
