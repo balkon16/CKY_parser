@@ -198,10 +198,39 @@ def transform_into_CNF(dicts):
         if len(RHS_symbols) == 1:
             # find a chain that leads the LHS to a terminal symbol
             # unit_productions.append(LHS, RHS)
-            pass
+            # pass
             # zaimplementować: może być na sam koniec; jeżeli na koniec to
             # usuń regułę PP -> NP
+            # print(LHS, RHS_symbols)
 
+            if terminals.get(RHS_symbols[0]):
+                # get() method returns None if there is no such key
+                # check whether the right-hand side of the rule is in any
+                # rule that results in a terminal symbol
+                # consider the example:
+                # PP -> NP (1)
+                # NP -> 'I' (2)
+                # (1)  & (2) --> PP -> 'I'
+                # print(RHS_symbols[0], terminals.get(RHS_symbols[0]))
+
+                # Given the example above the new right-hand side of the rule
+                # that produces a terminal symbol is the left-hand side of the
+                # unit production
+                terminals[LHS[0]] = terminals.pop(RHS_symbols[0])
+
+            else:
+                # this block handles the situation as in the example below:
+                # AP -> Adj (1)
+                # Adj -> AP2 (2)
+                # AP2 -> 'piękny' (3)
+                # (1) & (2) & (3) --> AP -> 'piękny'
+                # The previous block wouldn't work because the AP is not on the
+                # left-hand side of any rule resulting in a terminal symbol
+                print(LHS[0], RHS_symbols[0])
+                # TODO: zaimplementować tak, żeby Adj ostatecznie przechodził
+                # w 'piękny'
+                # pass
+                # start constructing a chain of rules
 
         elif len(RHS_symbols) > 2:
             # normalization is needed
@@ -232,5 +261,5 @@ def transform_into_CNF(dicts):
     # delete the rules that contain too long a right-hand side
     for key in keys_to_remove:
         rules.pop(key, None)
-
+    # print(terminals)
     return rules
