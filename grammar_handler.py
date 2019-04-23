@@ -1,5 +1,6 @@
 import os
 from collections import defaultdict
+import copy
 
 class CFG_Error(Exception):
     def __init__(self, inconsistency, location=None):
@@ -188,9 +189,10 @@ def transform_into_CNF(dicts):
     # key and thus must be deleted
     keys_to_remove = []
 
-    # the list will be used to store unit productions, i.e. rules such as A -> B
-    # each rule is expressed as tuple (LHS, RHS)
-    unit_productions = []
+    # the unit_productions is a dictionary parametrised by the list type so that
+    # it can handle unit productions such as AP -> Adj1 | Adj2
+    # dictionary holds LHS as the key and RHS in the list (value)
+    unit_productions = defaultdict(list)
 
     for RHS, LHS in rules.items():
         # print(LHS, "->", RHS)
@@ -224,10 +226,10 @@ def transform_into_CNF(dicts):
                 # TODO: zastanowić się czy na pewno chcę ten krok; czy nie
                 # lepiej zebrać wszystkie unit_productions i zrobić ten krok
                 # podczas iteracji po liście unit_productions
-                terminals[LHS[0]] = terminals.pop(RHS_symbols[0])
+                # terminals[LHS[0]] = terminals.pop(RHS_symbols[0])
 
                 #
-                unit_productions.append((LHS[0], RHS_symbols[0]))
+                unit_productions[LHS[0]].append(RHS_symbols[0])
             else:
                 # this block handles the situation as in the example below:
                 # AP -> Adj (1)
@@ -239,7 +241,7 @@ def transform_into_CNF(dicts):
                 # print(LHS[0], RHS_symbols[0])
                 # TODO: zaimplementować tak, żeby Adj ostatecznie przechodził
                 # w 'piękny'
-                unit_productions.append((LHS[0], RHS_symbols[0]))
+                unit_productions[LHS[0]].append(RHS_symbols[0])
 
                 # get the rest of the rules
 
@@ -268,6 +270,111 @@ def transform_into_CNF(dicts):
             temporary_rules_dict[" ".join(RHS_symbols)].append(LHS[0])
 
     print(unit_productions)
+    # handle unit productions
+
+    #
+    for LHS in unit_productions.keys():
+        unit_productions_copy = copy.deepcopy(unit_productions)
+        # each production is described as a tuple (LHS, RHS)
+        # LHS, RHS = prod
+        #
+        # if terminals.get(RHS):
+        #     # simple case: only one case needed from the unit production to a
+        #     # terminal symbol
+        #     # get() method returns None if there is no such key
+        #     # check whether the right-hand side of the rule is in any
+        #     # rule that results in a terminal symbol
+        #     # consider the example:
+        #     # PP -> NP (1)
+        #     # NP -> 'I' (2)
+        #     # (1)  & (2) --> PP -> 'I'
+        #     # print(RHS_symbols[0], terminals.get(RHS_symbols[0]))
+        #
+        #     # Given the example above the new right-hand side of the rule
+        #     # that produces a terminal symbol is the left-hand side of the
+        #     # unit production
+        #     terminals[LHS] = terminals.pop(RHS_symbols)
+        #
+        # else:
+        #     # the complex case: a chain of unit productions exists between
+        #     # the LHS of the considered production and a terminal symbol
+        #     while True:
+        #         pass
+        # print(unit_productions[LHS])
+        for RHS in unit_productions_copy[LHS]:
+            print(LHS, RHS)
+            while True:
+                if terminals.get(RHS):
+                    print("Handled with simple case")
+                    terminals[LHS] = terminals.pop(RHS)
+                    break
+                else:
+                    # the current RHS becomes new LHS
+                    # keys_to_remove.append(LHS)
+                    # TODO: zająć się usuwaniem kluczy
+                    LHS = RHS
+                    try:
+                        RHS = unit_productions_copy[LHS][0]
+                    except IndexError:
+                        break
+                    # print(LHS, RHS)
+
+                    # print("Simple rule not applied")
+                    # break
+            # while True:
+            #     # print(RHS)
+            #     if terminals.get(RHS):
+            #         terminals[LHS] = terminals.pop(RHS)
+            #         break
+            #
+            #     LHS = unit_productions.get(RHS)
+            #     # print(LHS)
+            #     RHS = unit_productions[LHS[0]]
+                # print(RHS)
+            # there may be more than one RHS
+            # print(LHS, RHS)
+            # if terminals.get(RHS):
+            #     # simple case: only one case needed from the unit production to a
+            #     # terminal symbol
+            #     # get() method returns None if there is no such key
+            #     # check whether the right-hand side of the rule is in any
+            #     # rule that results in a terminal symbol
+            #     # consider the example:
+            #     # PP -> NP (1)
+            #     # NP -> 'I' (2)
+            #     # (1)  & (2) --> PP -> 'I'
+            #     # print(RHS_symbols[0], terminals.get(RHS_symbols[0]))
+            #
+            #     # Given the example above the new right-hand side of the rule
+            #     # that produces a terminal symbol is the left-hand side of the
+            #     # unit production
+            #     terminals[LHS] = terminals.pop(RHS)
+            # else:
+            #     print(LHS, RHS)
+            # else:
+            #     # the complex case: a chain of unit productions exists between
+            #     # the LHS of the considered production and a terminal symbol
+            #     while True:
+            #         # print(RHS)
+            #         if terminals.get(RHS[0]):
+            #             terminals[LHS] = terminals.pop(RHS)
+            #             break
+            #
+            #         LHS = unit_productions.get(RHS[0])
+            #         # print(LHS)
+            #         RHS = unit_productions[LHS[0]]
+            #         # print(RHS)
+            #
+            #             # check whether the current RHS is a LHS for another
+            #             # rule. In other words check if a jump is possible
+            #             # AP -> Adj1
+            #             # Adj1 -> Adj2
+            #             # jump from AP to Adj2
+
+    # print(terminals)
+    print(keys_to_remove)
+
+
 
     # integrate temporary dictionary with the original (input) one:
     for RHS_tmp, LHS_tmp in temporary_rules_dict.items():
@@ -276,5 +383,5 @@ def transform_into_CNF(dicts):
     # delete the rules that contain too long a right-hand side
     for key in keys_to_remove:
         rules.pop(key, None)
-    # print(terminals)
+    print(terminals)
     return rules
