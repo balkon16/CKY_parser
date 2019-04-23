@@ -189,6 +189,7 @@ def transform_into_CNF(dicts):
     keys_to_remove = []
 
     # the list will be used to store unit productions, i.e. rules such as A -> B
+    # each rule is expressed as tuple (LHS, RHS)
     unit_productions = []
 
     for RHS, LHS in rules.items():
@@ -203,6 +204,9 @@ def transform_into_CNF(dicts):
             # usuń regułę PP -> NP
             # print(LHS, RHS_symbols)
 
+            # print("Unit production ", LHS, RHS_symbols[0])
+
+
             if terminals.get(RHS_symbols[0]):
                 # get() method returns None if there is no such key
                 # check whether the right-hand side of the rule is in any
@@ -216,8 +220,14 @@ def transform_into_CNF(dicts):
                 # Given the example above the new right-hand side of the rule
                 # that produces a terminal symbol is the left-hand side of the
                 # unit production
+
+                # TODO: zastanowić się czy na pewno chcę ten krok; czy nie
+                # lepiej zebrać wszystkie unit_productions i zrobić ten krok
+                # podczas iteracji po liście unit_productions
                 terminals[LHS[0]] = terminals.pop(RHS_symbols[0])
 
+                #
+                unit_productions.append((LHS[0], RHS_symbols[0]))
             else:
                 # this block handles the situation as in the example below:
                 # AP -> Adj (1)
@@ -226,10 +236,13 @@ def transform_into_CNF(dicts):
                 # (1) & (2) & (3) --> AP -> 'piękny'
                 # The previous block wouldn't work because the AP is not on the
                 # left-hand side of any rule resulting in a terminal symbol
-                print(LHS[0], RHS_symbols[0])
+                # print(LHS[0], RHS_symbols[0])
                 # TODO: zaimplementować tak, żeby Adj ostatecznie przechodził
                 # w 'piękny'
-                # pass
+                unit_productions.append((LHS[0], RHS_symbols[0]))
+
+                # get the rest of the rules
+
                 # start constructing a chain of rules
 
         elif len(RHS_symbols) > 2:
@@ -253,6 +266,8 @@ def transform_into_CNF(dicts):
             # temporary dict
             # note that use the first and only element of the LHS list
             temporary_rules_dict[" ".join(RHS_symbols)].append(LHS[0])
+
+    print(unit_productions)
 
     # integrate temporary dictionary with the original (input) one:
     for RHS_tmp, LHS_tmp in temporary_rules_dict.items():
