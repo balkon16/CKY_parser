@@ -1,6 +1,7 @@
 import os
 from collections import defaultdict
 import copy
+import pickle
 
 class CFG_Error(Exception):
     def __init__(self, inconsistency, location=None):
@@ -272,7 +273,9 @@ def transform_into_CNF(dicts):
     print("Unit productions: ")
     print(unit_productions, "\n")
     # handle unit productions
-
+    print("Saving to pickle")
+    with open('unit_prods.pickle', 'wb') as handle:
+        pickle.dump(unit_productions, handle, protocol=pickle.HIGHEST_PROTOCOL)
     #
 
 
@@ -391,6 +394,10 @@ def transform_into_CNF(dicts):
     # delete the rules that contain too long a right-hand side
     for key in keys_to_remove:
         rules.pop(key, None)
+
+    with open('rules.pickle', 'wb') as handle:
+        pickle.dump(rules, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        
     print("\n####")
     print("Terminals:")
     print(terminals, "\n")
