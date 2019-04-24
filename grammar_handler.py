@@ -268,11 +268,16 @@ def transform_into_CNF(dicts):
             # temporary dict
             # note that use the first and only element of the LHS list
             temporary_rules_dict[" ".join(RHS_symbols)].append(LHS[0])
-
-    print(unit_productions)
+    print("#####")
+    print("Unit productions: ")
+    print(unit_productions, "\n")
     # handle unit productions
 
     #
+
+
+    print("\nTerminals before:")
+    print(terminals)
     for LHS in unit_productions.keys():
         unit_productions_copy = copy.deepcopy(unit_productions)
         # each production is described as a tuple (LHS, RHS)
@@ -301,17 +306,20 @@ def transform_into_CNF(dicts):
         #     while True:
         #         pass
         # print(unit_productions[LHS])
+
         for RHS in unit_productions_copy[LHS]:
-            print(LHS, RHS)
             while True:
                 if terminals.get(RHS):
-                    print("Handled with simple case")
+                    print("\nHandled with simple case the following rule:")
+                    print(LHS, RHS)
                     terminals[LHS] = terminals.pop(RHS)
                     break
                 else:
                     # the current RHS becomes new LHS
                     # keys_to_remove.append(LHS)
                     # TODO: zająć się usuwaniem kluczy
+                    print("\nThe complex handling is needed for: ")
+                    print(LHS, RHS)
                     LHS = RHS
                     try:
                         RHS = unit_productions_copy[LHS][0]
@@ -383,5 +391,7 @@ def transform_into_CNF(dicts):
     # delete the rules that contain too long a right-hand side
     for key in keys_to_remove:
         rules.pop(key, None)
-    print(terminals)
+    print("\n####")
+    print("Terminals:")
+    print(terminals, "\n")
     return rules
